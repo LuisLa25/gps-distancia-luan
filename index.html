@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GPS LuAn">
+<title>GPS Distancia · LuAn System™</title>
+<style>
+:root{--bg:#0a0f1e;--bg2:#111827;--card:#1a2235;--card2:#1e2a3a;--accent:#38bdf8;--accent2:#0ea5e9;--accent-dim:rgba(56,189,248,.12);--success:#34d399;--success-dim:rgba(52,211,153,.12);--danger:#f87171;--danger-dim:rgba(248,113,113,.12);--warn:#fbbf24;--text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);--radius:12px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;overscroll-behavior:none}
+body{padding-top:var(--safe-top);padding-bottom:var(--safe-bot);display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+.app-header{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent2),#6366f1);display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo-text{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.logo-sub{font-size:10px;color:var(--text3)}
+.brand-tag{font-size:10px;color:var(--text3);background:var(--card);border:1px solid var(--border2);padding:3px 8px;border-radius:20px}
+.tabs{display:flex;gap:4px;padding:10px 14px;background:var(--bg);flex-shrink:0;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:9px 6px;font-size:12px;font-weight:500;text-align:center;border-radius:9px;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tab.active{background:var(--accent-dim);color:var(--accent)}
+.scroll-wrap{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.section{display:none;flex-direction:column;gap:10px}
+.section.vis{display:flex}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.field-label{font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:500}
+.coord-row{display:flex;gap:6px;margin-bottom:6px}
+input[type=text]{flex:1;padding:10px 12px;font-size:13px;border-radius:9px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);min-width:0;-webkit-appearance:none}
+input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+input[type=text]::placeholder{color:var(--text3)}
+.btn-gps{padding:10px;border-radius:9px;border:1px solid var(--accent);background:var(--accent-dim);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-primary{width:100%;padding:12px;font-size:14px;font-weight:600;border-radius:10px;border:none;background:var(--accent2);color:#fff;cursor:pointer;margin-top:4px}
+.btn-success{width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:10px;border:none;background:var(--success);color:#0a0f1e;cursor:pointer}
+.btn-mini{padding:6px 10px;font-size:11px;font-weight:600;border-radius:7px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);cursor:pointer}
+.btn-del{background:var(--danger-dim);color:var(--danger);border-color:transparent}
+.fav-picks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.fav-pick{padding:5px 9px;font-size:11px;border-radius:20px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);cursor:pointer;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.result-panel{background:var(--accent-dim);border:1px solid rgba(56,189,248,.25);border-radius:var(--radius);padding:16px;display:none}
+.result-km{font-size:36px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1}
+.result-label{font-size:11px;color:var(--accent);opacity:.7;margin-top:3px}
+.result-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:12px}
+.result-chip{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 10px}
+.result-chip .val{font-size:15px;font-weight:600;color:var(--text)}
+.result-chip .lbl{font-size:10px;color:var(--text3);margin-top:1px}
+.result-extra{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.extra-chip{padding:4px 10px;border-radius:20px;font-size:11px;background:var(--card);border:1px solid var(--border);color:var(--text2)}
+.extra-chip b{color:var(--text)}
+.inline-err{font-size:11px;color:var(--danger);margin-top:4px;display:none;padding:6px 10px;background:var(--danger-dim);border-radius:7px}
+.fav-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.fav-emo{width:38px;height:38px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.fav-info{flex:1;min-width:0}
+.fav-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-coords{font-size:10px;color:var(--text3);margin-top:1px}
+.fav-btns{display:flex;gap:4px;flex-shrink:0}
+.btn-ab{padding:6px 9px;font-size:11px;font-weight:700;border-radius:7px;border:1px solid var(--border2);background:var(--card);color:var(--text2);cursor:pointer}
+.hist-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:6px}
+.hist-route{font-size:11px;color:var(--text3);margin-bottom:4px}
+.hist-dist{font-size:17px;font-weight:700;color:var(--text)}
+.hist-units{font-size:11px;color:var(--text3);margin-top:3px}
+.hist-time{font-size:10px;color:var(--text3);margin-top:5px;padding-top:5px;border-top:1px solid var(--border)}
+.empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:13px;line-height:1.6}
+.empty-emo{font-size:30px;margin-bottom:8px}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <div class="logo">
+    <div class="logo-icon">📍</div>
+    <div>
+      <div class="logo-text">GPS Distancia</div>
+      <div class="logo-sub">Fórmula Haversine</div>
+    </div>
+  </div>
+  <div class="brand-tag">LuAn System™</div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('calc')" id="tab-btn-calc">📐 Medir</button>
+  <button class="tab" onclick="showTab('favs')" id="tab-btn-favs">⭐ Favoritos</button>
+  <button class="tab" onclick="showTab('hist')" id="tab-btn-hist">🕐 Historial</button>
+</div>
+<div class="scroll-wrap">
+  <div id="tab-calc" class="section vis">
+    <div class="card">
+      <div class="field-label">📍 Punto A</div>
+      <div class="coord-row">
+        <input type="text" id="ptA" placeholder="Lat, Lon · ej: 7.8939, -67.4724">
+        <button class="btn-gps" onclick="getGPS('ptA')">📡 GPS</button>
+      </div>
+      <div class="fav-picks" id="picks-A"></div>
+      <div class="field-label" style="margin-top:4px">🏁 Punto B</div>
+      <div class="coord-row">
+        <input type="text" id="ptB" placeholder="Lat, Lon · ej: 7.8850, -67.4610">
+        <button class="btn-gps" onclick="getGPS('ptB')">📡 GPS</button>
+      </div>
+      <div class="fav-picks" id="picks-B"></div>
+      <div class="inline-err" id="calc-err">Verifica las coordenadas. Formato: Latitud, Longitud</div>
+      <button class="btn-primary" onclick="calcular()">Calcular distancia →</button>
+    </div>
+    <div class="result-panel" id="result-panel">
+      <div class="result-km" id="res-km">—</div>
+      <div class="result-label">kilómetros en línea recta</div>
+      <div class="result-grid">
+        <div class="result-chip"><div class="val" id="res-m">—</div><div class="lbl">Metros</div></div>
+        <div class="result-chip"><div class="val" id="res-mi">—</div><div class="lbl">Millas</div></div>
+        <div class="result-chip"><div class="val" id="res-min">—</div><div class="lbl">~Min en carro</div></div>
+        <div class="result-chip"><div class="val" id="res-camin">—</div><div class="lbl">~Min caminando</div></div>
+      </div>
+      <div class="result-extra" id="result-extra"></div>
+    </div>
+  </div>
+  <div id="tab-favs" class="section">
+    <div class="card">
+      <div class="section-head">
+        <div class="card-title" style="margin:0">Mis lugares</div>
+      </div>
+      <div id="fav-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Agregar lugar</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <input type="text" id="fav-name" placeholder="Nombre (ej: Casa, Farmacia, Trabajo)">
+        <input type="text" id="fav-emoji" placeholder="Emoji (ej: 🏠 🏥 💼 ⛽ 🏫)">
+        <div class="coord-row">
+          <input type="text" id="fav-coord" placeholder="Lat, Lon">
+          <button class="btn-gps" onclick="getGPS('fav-coord')">📡 GPS</button>
+        </div>
+        <div class="inline-err" id="fav-err">Escribe un nombre y coordenadas válidas.</div>
+        <button class="btn-success" onclick="agregarFav()">+ Guardar favorito</button>
+      </div>
+    </div>
+  </div>
+  <div id="tab-hist" class="section">
+    <div class="card">
+      <div class="section-head">
+        <div class="card-title" style="margin:0">Mediciones recientes</div>
+        <button class="btn-mini" onclick="borrarHist()">Limpiar</button>
+      </div>
+      <div id="hist-list"></div>
+    </div>
+  </div>
+</div>
+<script>
+const SF='luan_gps_favs_v3',SH='luan_gps_hist_v3';
+let favs=[],hist=[];
+function loadData(){try{favs=JSON.parse(localStorage.getItem(SF))||dF();}catch(e){favs=dF();}try{hist=JSON.parse(localStorage.getItem(SH))||[];}catch(e){hist=[];}}
+function dF(){return[{nombre:'Arichuna Centro',emoji:'🏘️',coords:'7.8939, -67.4724'},{nombre:'San Fernando de Apure',emoji:'🏙️',coords:'7.8966, -67.4769'}];}
+function saveFavs(){try{localStorage.setItem(SF,JSON.stringify(favs));}catch(e){}}
+function saveHist(){try{localStorage.setItem(SH,JSON.stringify(hist.slice(0,40)));}catch(e){}}
+function parse(txt){if(!txt||!txt.trim())return null;const p=txt.split(',').map(s=>parseFloat(s.trim()));if(p.length!==2||isNaN(p[0])||isNaN(p[1]))return null;if(p[0]<-90||p[0]>90||p[1]<-180||p[1]>180)return null;return{lat:p[0],lon:p[1]};}
+function haversine(a,b,c,d){const R=6371000,tr=x=>x*Math.PI/180,dA=tr(c-a),dO=tr(d-b),e=Math.sin(dA/2)**2+Math.cos(tr(a))*Math.cos(tr(c))*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(e),Math.sqrt(1-e));}
+function calcular(){const pA=parse(document.getElementById('ptA').value),pB=parse(document.getElementById('ptB').value),err=document.getElementById('calc-err');if(!pA||!pB){err.style.display='block';return;}err.style.display='none';const metros=haversine(pA.lat,pA.lon,pB.lat,pB.lon),km=metros/1000,mi=km*0.621371,minC=Math.round(km/0.65),minW=Math.round(km/0.08);document.getElementById('res-km').textContent=km.toFixed(3);document.getElementById('res-m').textContent=Math.round(metros).toLocaleString('es-VE');document.getElementById('res-mi').textContent=mi.toFixed(3);document.getElementById('res-min').textContent=minC<1?'<1 min':minC+' min';document.getElementById('res-camin').textContent=minW<1?'<1 min':minW>60?Math.round(minW/60)+' h':minW+' min';document.getElementById('result-panel').style.display='block';document.getElementById('result-extra').innerHTML='<div class="extra-chip"><b>'+(metros/0.9144).toFixed(0)+'</b> yardas</div><div class="extra-chip"><b>'+(metros/0.3048).toFixed(0)+'</b> pies</div><div class="extra-chip"><b>'+(metros/1852).toFixed(3)+'</b> mn</div>';const nA=lbl('ptA'),nB=lbl('ptB');hist.unshift({a:nA,b:nB,km:km.toFixed(3),m:Math.round(metros),mi:mi.toFixed(3),minCarro:minC,ts:Date.now()});saveHist();}
+function lbl(id){const v=document.getElementById(id).value.trim(),m=favs.find(f=>f.coords===v);return m?m.emoji+' '+m.nombre:v.substring(0,22);}
+function getGPS(id){if(!navigator.geolocation){alert('GPS no disponible.');return;}const el=document.getElementById(id),prev=el.value;el.value='Obteniendo GPS...';el.style.borderColor='var(--warn)';navigator.geolocation.getCurrentPosition(function(p){el.value=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);el.style.borderColor='var(--success)';setTimeout(function(){el.style.borderColor='';},2000);},function(){el.value=prev;el.style.borderColor='';alert('No se pudo obtener el GPS.\nRevisa los permisos en Chrome.');},{enableHighAccuracy:true,timeout:12000});}
+function usarCoords(id,coords){document.getElementById(id).value=coords;showTab('calc');document.getElementById('calc-err').style.display='none';}
+function renderFavPicks(){['A','B'].forEach(function(pt){var c=document.getElementById('picks-'+pt);if(!favs.length){c.innerHTML='';return;}c.innerHTML=favs.map(function(f){return'<button class="fav-pick" onclick="usarCoords(\'pt'+pt+'\',\''+f.coords+'\')">'+( f.emoji||'📍')+' '+f.nombre+'</button>';}).join('');});}
+function renderFavs(){var el=document.getElementById('fav-list');if(!favs.length){el.innerHTML='<div class="empty"><div class="empty-emo">⭐</div>Aún no tienes lugares guardados.</div>';return;}el.innerHTML=favs.map(function(f,i){return'<div class="fav-item"><div class="fav-emo">'+(f.emoji||'📍')+'</div><div class="fav-info"><div class="fav-name">'+f.nombre+'</div><div class="fav-coords">'+f.coords+'</div></div><div class="fav-btns"><button class="btn-ab" onclick="usarCoords(\'ptA\',\''+f.coords+'\')">A</button><button class="btn-ab" onclick="usarCoords(\'ptB\',\''+f.coords+'\')">B</button><button class="btn-mini btn-del" onclick="eliminarFav('+i+')">✕</button></div></div>';}).join('');}
+function eliminarFav(i){if(!confirm('Eliminar "'+favs[i].nombre+'"?'))return;favs.splice(i,1);saveFavs();renderFavs();renderFavPicks();}
+function agregarFav(){var nombre=document.getElementById('fav-name').value.trim(),emoji=document.getElementById('fav-emoji').value.trim(),coordsTexto=document.getElementById('fav-coord').value.trim(),err=document.getElementById('fav-err');if(!nombre||!parse(coordsTexto)){err.style.display='block';return;}err.style.display='none';favs.push({nombre:nombre,emoji:emoji||'📍',coords:coordsTexto});saveFavs();renderFavs();renderFavPicks();document.getElementById('fav-name').value='';document.getElementById('fav-emoji').value='';document.getElementById('fav-coord').value='';}
+function renderHist(){var el=document.getElementById('hist-list');if(!hist.length){el.innerHTML='<div class="empty"><div class="empty-emo">🕐</div>Las mediciones aparecerán aquí.</div>';return;}el.innerHTML=hist.slice(0,25).map(function(h){var d=new Date(h.ts),f=d.toLocaleDateString('es-VE',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});return'<div class="hist-item"><div class="hist-route">📍 '+h.a+' → '+h.b+'</div><div class="hist-dist">'+h.km+' km</div><div class="hist-units">'+h.m.toLocaleString('es-VE')+' m · '+h.mi+' mi · ~'+h.minCarro+' min carro</div><div class="hist-time">'+f+'</div></div>';}).join('');}
+function borrarHist(){if(!confirm('Borrar todo el historial?'))return;hist=[];saveHist();renderHist();}
+function showTab(id){document.querySelectorAll('.section').forEach(function(s){s.classList.remove('vis');});document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.getElementById('tab-'+id).classList.add('vis');document.getElementById('tab-btn-'+id).classList.add('active');if(id==='favs')renderFavs();if(id==='hist')renderHist();}
+loadData();renderFavPicks();
+</script>
+</body>
+</html>

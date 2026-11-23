@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="GPS LuAn">
-<title>GPS Distancia v3 · LuAn System™</title>
+<title>GPS Distancia v4 · LuAn System™</title>
 <style>
 :root{
   --bg:#0a0f1e;--bg2:#111827;--card:#1a2235;--card2:#1e2a3a;
@@ -148,6 +148,27 @@ textarea{resize:none;height:62px;line-height:1.5}
 .hist-time{font-size:10px;color:var(--text3);margin-top:5px;padding-top:5px;border-top:1px solid var(--border)}
 .empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:13px;line-height:1.6}
 .empty-emo{font-size:30px;margin-bottom:8px}
+
+/* ODÓMETRO */
+.odo-display{background:linear-gradient(135deg,#0a0f1e,#111827);border:1px solid rgba(74,222,128,.3);border-radius:14px;padding:20px 16px;text-align:center;margin-bottom:10px}
+.odo-km{font-size:52px;font-weight:800;color:var(--green);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.odo-unit{font-size:14px;color:var(--green);opacity:.7;margin-top:4px}
+.odo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:12px}
+.odo-chip{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px}
+.odo-chip .val{font-size:18px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.odo-chip .lbl{font-size:10px;color:var(--text3);margin-top:2px}
+.odo-controls{display:flex;gap:7px;margin-top:4px}
+.btn-odo-start{flex:1;padding:14px;font-size:15px;font-weight:700;border-radius:11px;border:none;background:var(--success);color:#0a0f1e;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-odo-stop{flex:1;padding:14px;font-size:15px;font-weight:700;border-radius:11px;border:none;background:var(--danger);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;display:none}
+.btn-odo-reset{padding:14px 16px;font-size:15px;border-radius:11px;border:1px solid var(--border2);background:var(--card2);color:var(--text2);cursor:pointer}
+.odo-state{text-align:center;font-size:12px;color:var(--text3);margin-top:8px;min-height:18px}
+.odo-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:5px;vertical-align:middle;animation:pulse 1s infinite}
+.odo-hist-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:7px}
+.odo-hist-km{font-size:22px;font-weight:800;color:var(--green)}
+.odo-hist-meta{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6}
+.odo-hist-time{font-size:10px;color:var(--text3);margin-top:5px;padding-top:5px;border-top:1px solid var(--border)}
+.odo-result{background:var(--green-dim);border:1px solid rgba(74,222,128,.3);border-radius:12px;padding:14px;display:none;margin-top:8px}
+.odo-result-title{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -157,7 +178,7 @@ textarea{resize:none;height:62px;line-height:1.5}
     <div class="logo-icon">📍</div>
     <div>
       <div class="logo-text">GPS Distancia</div>
-      <div class="logo-sub">LuAn System™ · v3</div>
+      <div class="logo-sub">LuAn System™ · v4</div>
     </div>
   </div>
   <div class="brand-tag">Haversine</div>
@@ -169,6 +190,7 @@ textarea{resize:none;height:62px;line-height:1.5}
   <button class="tab" onclick="showTab('refs')" id="tab-btn-refs"><span class="tab-ico">🗺️</span>Rutas</button>
   <button class="tab" onclick="showTab('favs')" id="tab-btn-favs"><span class="tab-ico">⭐</span>Lugares</button>
   <button class="tab" onclick="showTab('hist')" id="tab-btn-hist"><span class="tab-ico">🕐</span>Historial</button>
+  <button class="tab" onclick="showTab('odo')" id="tab-btn-odo"><span class="tab-ico">🛣️</span>Odómetro</button>
 </div>
 
 <div class="scroll-wrap">
@@ -782,12 +804,190 @@ function showTab(id){
   if(id==='favs')renderFavs();
   if(id==='hist')renderHist();
   if(id==='refs')renderRefs();
+  if(id==='odo')renderOdoHist();
+}
+
+
+// ═══ ODÓMETRO GPS ═══
+let odoWatchId = null;
+let odoKmTotal = 0;
+let odoLastPos = null;
+let odoStartTime = null;
+let odoTimerInterval = null;
+let odoVelMax = 0;
+let odoVelReadings = [];
+let odoHistOdo = [];
+let odoFinalKm = 0;
+
+try { odoHistOdo = JSON.parse(localStorage.getItem('luan_odo_hist_v1')) || []; } catch(e) { odoHistOdo = []; }
+
+function odoIniciar() {
+  if (!navigator.geolocation) { alert('GPS no disponible.'); return; }
+  odoKmTotal = 0; odoLastPos = null; odoVelMax = 0; odoVelReadings = [];
+  odoStartTime = Date.now();
+
+  document.getElementById('odo-btn-start').style.display = 'none';
+  document.getElementById('odo-btn-stop').style.display = 'flex';
+  document.getElementById('odo-metrics').style.display = 'block';
+  document.getElementById('odo-result').style.display = 'none';
+  document.getElementById('odo-fuel-panel').style.display = 'none';
+  document.getElementById('odo-km').textContent = '0.000';
+
+  const dot = '<span class="odo-dot"></span>';
+  document.getElementById('odo-state').innerHTML = dot + 'Rastreando recorrido...';
+
+  // Timer visual
+  odoTimerInterval = setInterval(() => {
+    const seg = Math.floor((Date.now() - odoStartTime) / 1000);
+    const mm = Math.floor(seg / 60).toString().padStart(2,'0');
+    const ss = (seg % 60).toString().padStart(2,'0');
+    document.getElementById('odo-tiempo').textContent = mm + ':' + ss;
+  }, 1000);
+
+  odoWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const kmh = pos.coords.speed != null ? pos.coords.speed * 3.6 : 0;
+
+      if (odoLastPos) {
+        const d = haversine(odoLastPos.lat, odoLastPos.lon, pos.coords.latitude, pos.coords.longitude);
+        // Solo sumar si hay movimiento real (> 3m) y precisión aceptable
+        if (d > 3 && pos.coords.accuracy < 50) {
+          odoKmTotal += d / 1000;
+          document.getElementById('odo-km').textContent = odoKmTotal.toFixed(3);
+        }
+      }
+      odoLastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+
+      // Velocidad
+      if (kmh > odoVelMax) odoVelMax = kmh;
+      odoVelReadings.push(kmh);
+      const avg = odoVelReadings.reduce((a,b) => a+b, 0) / odoVelReadings.length;
+
+      document.getElementById('odo-vel').textContent = kmh.toFixed(1);
+      document.getElementById('odo-vel-max').textContent = odoVelMax.toFixed(1);
+      document.getElementById('odo-vel-avg').textContent = avg.toFixed(1);
+      document.getElementById('odo-state').innerHTML = '<span class="odo-dot"></span>En ruta · ±' + Math.round(pos.coords.accuracy) + ' m precisión';
+    },
+    () => { toast('Error de GPS. Revisa permisos.', 'var(--danger)'); odoDetener(); },
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+  );
+}
+
+function odoDetener() {
+  if (odoWatchId !== null) { navigator.geolocation.clearWatch(odoWatchId); odoWatchId = null; }
+  clearInterval(odoTimerInterval);
+
+  const seg = Math.floor((Date.now() - odoStartTime) / 1000);
+  const mm = Math.floor(seg / 60).toString().padStart(2,'0');
+  const ss = (seg % 60).toString().padStart(2,'0');
+  const tiempoStr = mm + ':' + ss;
+  const avg = odoVelReadings.length ? (odoVelReadings.reduce((a,b)=>a+b,0)/odoVelReadings.length) : 0;
+
+  odoFinalKm = odoKmTotal;
+
+  document.getElementById('odo-btn-start').style.display = 'flex';
+  document.getElementById('odo-btn-stop').style.display = 'none';
+  document.getElementById('odo-state').textContent = '✓ Recorrido completado';
+
+  // Mostrar resultado
+  document.getElementById('odo-res-km').textContent = odoFinalKm.toFixed(3) + ' km';
+  document.getElementById('odo-res-tiempo').textContent = tiempoStr;
+  document.getElementById('odo-res-avg').textContent = avg.toFixed(1) + ' km/h';
+  document.getElementById('odo-res-max').textContent = odoVelMax.toFixed(1) + ' km/h';
+  document.getElementById('odo-result').style.display = 'block';
+
+  toast('🛣️ Recorriste ' + odoFinalKm.toFixed(3) + ' km', 'var(--green)');
+}
+
+function odoReset() {
+  if (odoWatchId !== null) { navigator.geolocation.clearWatch(odoWatchId); odoWatchId = null; }
+  clearInterval(odoTimerInterval);
+  odoKmTotal = 0; odoLastPos = null; odoVelMax = 0; odoVelReadings = []; odoFinalKm = 0;
+  document.getElementById('odo-km').textContent = '0.000';
+  document.getElementById('odo-btn-start').style.display = 'flex';
+  document.getElementById('odo-btn-stop').style.display = 'none';
+  document.getElementById('odo-metrics').style.display = 'none';
+  document.getElementById('odo-result').style.display = 'none';
+  document.getElementById('odo-state').textContent = 'Listo para iniciar';
+  document.getElementById('odo-vel').textContent = '0';
+  document.getElementById('odo-vel-max').textContent = '0';
+  document.getElementById('odo-vel-avg').textContent = '0';
+  document.getElementById('odo-tiempo').textContent = '00:00';
+}
+
+function odoCalcularCombustible() {
+  const litros = parseFloat(document.getElementById('odo-litros').value);
+  const precio = parseFloat(document.getElementById('odo-precio').value) || 0;
+  if (!litros || litros <= 0 || odoFinalKm <= 0) { toast('Ingresa los litros consumidos', 'var(--warn)'); return; }
+  const rend = odoFinalKm / litros;
+  const lx100 = (litros / odoFinalKm) * 100;
+  const costo = litros * precio;
+  const costoKm = precio > 0 ? costo / odoFinalKm : 0;
+  document.getElementById('odo-rend').textContent = rend.toFixed(2);
+  document.getElementById('odo-lx100').textContent = lx100.toFixed(2) + ' L';
+  document.getElementById('odo-costo').textContent = precio > 0 ? '$' + costo.toFixed(2) : '—';
+  document.getElementById('odo-costo-km').textContent = precio > 0 ? '$' + costoKm.toFixed(4) : '—';
+  document.getElementById('odo-fuel-panel').style.display = 'block';
+}
+
+function odoGuardar() {
+  if (odoFinalKm <= 0) { toast('No hay recorrido para guardar', 'var(--warn)'); return; }
+  const seg = odoStartTime ? Math.floor((Date.now() - odoStartTime) / 1000) : 0;
+  const avg = odoVelReadings.length ? (odoVelReadings.reduce((a,b)=>a+b,0)/odoVelReadings.length) : 0;
+  odoHistOdo.unshift({ km: odoFinalKm.toFixed(3), velMax: odoVelMax.toFixed(1), velAvg: avg.toFixed(1), seg, ts: Date.now() });
+  try { localStorage.setItem('luan_odo_hist_v1', JSON.stringify(odoHistOdo.slice(0,30))); } catch(e) {}
+  renderOdoHist();
+  toast('💾 Recorrido guardado ✓', 'var(--success)');
+}
+
+function odoCompartir() {
+  if (odoFinalKm <= 0) { toast('No hay recorrido para compartir', 'var(--warn)'); return; }
+  const avg = odoVelReadings.length ? (odoVelReadings.reduce((a,b)=>a+b,0)/odoVelReadings.length).toFixed(1) : '—';
+  const seg = odoStartTime ? Math.floor((Date.now() - odoStartTime) / 1000) : 0;
+  const mm = Math.floor(seg/60), ss = seg%60;
+  const txt = '🛣️ *Recorrido GPS · LuAn System™*\n' +
+    '📏 *' + odoFinalKm.toFixed(3) + ' km* recorridos por vía\n' +
+    '⏱️ Tiempo: ' + mm + ' min ' + ss + ' seg\n' +
+    '🚗 Vel. promedio: ' + avg + ' km/h\n' +
+    '🏎️ Vel. máxima: ' + odoVelMax.toFixed(1) + ' km/h';
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function renderOdoHist() {
+  const el = document.getElementById('odo-hist-list');
+  if (!odoHistOdo.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-emo">🛣️</div>Aún no tienes recorridos guardados.</div>';
+    return;
+  }
+  el.innerHTML = odoHistOdo.slice(0,20).map(h => {
+    const d = new Date(h.ts);
+    const f = d.toLocaleDateString('es-VE',{day:'2-digit',month:'short'}) + ' ' +
+              d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'});
+    const mm = Math.floor(h.seg/60), ss = h.seg%60;
+    return '<div class="odo-hist-item">' +
+      '<div class="odo-hist-km">' + h.km + ' km</div>' +
+      '<div class="odo-hist-meta">' +
+        '⏱️ ' + mm + ' min ' + ss + ' seg &nbsp;·&nbsp; ' +
+        '🚗 Prom: ' + h.velAvg + ' km/h &nbsp;·&nbsp; ' +
+        '🏎️ Máx: ' + h.velMax + ' km/h' +
+      '</div>' +
+      '<div class="odo-hist-time">' + f + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function odoBorrarHist() {
+  if (!confirm('¿Borrar todos los recorridos guardados?')) return;
+  odoHistOdo = [];
+  try { localStorage.removeItem('luan_odo_hist_v1'); } catch(e) {}
+  renderOdoHist();
 }
 
 // ═══ INIT ═══
 loadData();
 renderFavPicks();
 renderRefs();
+renderOdoHist();
 </script>
 </body>
 </html>
